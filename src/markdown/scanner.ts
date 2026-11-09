@@ -6,9 +6,13 @@
  * matter are skipped. It is deliberately not a full CommonMark parser.
  */
 
+import { Slugger } from "./slug.js";
+
 export interface Heading {
   /** Heading text with inline Markdown removed. */
   text: string;
+  /** The anchor GitHub generates for this heading, e.g. `getting-started`. */
+  slug: string;
   level: number;
   line: number;
 }
@@ -40,6 +44,10 @@ const HTML_ID = /<[a-z][^>]*?\s(?:id|name)\s*=\s*["']([^"']+)["']/gi;
 export function scanMarkdown(source: string): MarkdownDocument {
   const lines = source.split(/\r?\n/);
   const doc: MarkdownDocument = { headings: [], links: [], anchors: [] };
+  const slugger = new Slugger();
+  const addHeading = (text: string, level: number, line: number) => {
+    doc.headings.push({ text, slug: slugger.slug(text), level, line });
+  };
 
   let fence: { char: string; length: number } | null = null;
   let previous: string | null = null; // last paragraph line, for setext headings
@@ -70,8 +78,7 @@ export function scanMarkdown(source: string): MarkdownDocument {
 
     const atx = ATX_HEADING.exec(line);
     if (atx) {
-      const text = stripInlineMarkdown(atx[2] ?? "");
-      doc.headings.push({ text, level: atx[1]?.length ?? 1, line: lineNumber });
+      addHeading(stripInlineMarkdown(atx[2] ?? ""), atx[1]?.length ?? 1, lineNumber);
       collectInline(line, lineNumber, doc);
       previous = null;
       continue;
@@ -79,8 +86,7 @@ export function scanMarkdown(source: string): MarkdownDocument {
 
     const underline = SETEXT_UNDERLINE.exec(line)?.[1];
     if (underline && previous !== null) {
-      const level = underline.startsWith("=") ? 1 : 2;
-      doc.headings.push({ text: stripInlineMarkdown(previous), level, line: lineNumber - 1 });
+      addHeading(stripInlineMarkdown(previous), underline.startsWith("=") ? 1 : 2, lineNumber - 1);
       previous = null;
       continue;
     }

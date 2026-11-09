@@ -7,8 +7,8 @@ describe("headings", () => {
   it("finds ATX headings with their level and line", () => {
     const { headings } = scanMarkdown(md("# Title", "", "text", "### Deep ###"));
     expect(headings).toEqual([
-      { text: "Title", level: 1, line: 1 },
-      { text: "Deep", level: 3, line: 4 },
+      { text: "Title", slug: "title", level: 1, line: 1 },
+      { text: "Deep", slug: "deep", level: 3, line: 4 },
     ]);
   });
 
@@ -29,6 +29,11 @@ describe("headings", () => {
     expect(scanMarkdown(md("#hashtag", "####### seven", "    # indented code")).headings).toEqual(
       [],
     );
+  });
+
+  it("gives repeated headings unique slugs", () => {
+    const { headings } = scanMarkdown(md("## Options", "## Options", "Options", "-------"));
+    expect(headings.map((h) => h.slug)).toEqual(["options", "options-1", "options-2"]);
   });
 
   it("strips inline Markdown from heading text", () => {
@@ -109,7 +114,7 @@ describe("links", () => {
 describe("front matter", () => {
   it("is skipped while keeping line numbers", () => {
     const { headings, links } = scanMarkdown(md("---", "title: x", "---", "# Hello", "[a](a.md)"));
-    expect(headings).toEqual([{ text: "Hello", level: 1, line: 4 }]);
+    expect(headings).toEqual([{ text: "Hello", slug: "hello", level: 1, line: 4 }]);
     expect(links[0]?.line).toBe(5);
   });
 });
