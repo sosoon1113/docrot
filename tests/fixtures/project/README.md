@@ -12,3 +12,14 @@ So is this one: [old API](api/v1.md "Old API").
 ![Folder, not an image](docs/img)
 
 External links are skipped: [site](https://example.com), [mail](mailto:hi@example.com).
+
+## Installation
+
+Jump to [usage](#usage), [the top](#top) or [install steps](#instalation).
+
+## Usage
+
+Guide: [installation](docs/guide.md#installation), [configuration](docs/guide.md#configuration).
+Encoded and mixed-case anchors work: [notes](docs/my%20notes.md#Notes).
+Line anchors in other files are ignored: [logo source](docs/img/logo.svg#L1).
+<a name="custom-anchor"></a>Explicit anchors count too: [custom](#custom-anchor).

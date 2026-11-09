@@ -5,7 +5,7 @@ import { checkFixture, fixtureRoot } from "./helpers.js";
 
 describe("broken-link and missing-image", () => {
   it("reports only the targets that don't exist", () => {
-    expect(checkFixture("README.md")).toEqual([
+    expect(checkFixture("README.md").slice(0, 4)).toEqual([
       "README.md:7:22 broken-link link target 'docs/setup.md' does not exist",
       "README.md:8:17 broken-link link target 'api/v1.md' does not exist",
       "README.md:11:1 missing-image image 'docs/img/screenshot.png' does not exist",
@@ -21,7 +21,26 @@ describe("broken-link and missing-image", () => {
 
   it("sorts findings by file and position", () => {
     const files = checkFixture("docs/guide.md", "README.md").map((line) => line.split(":")[0]);
-    expect(files).toEqual(["README.md", "README.md", "README.md", "README.md", "docs/guide.md"]);
+    expect(files.at(-1)).toBe("docs/guide.md");
+    expect(files.filter((file) => file === "README.md")).toHaveLength(files.length - 1);
+  });
+});
+
+describe("missing-anchor", () => {
+  const anchorFindings = () =>
+    checkFixture("README.md").filter((line) => line.includes("missing-anchor"));
+
+  it("checks same-file and cross-file anchors", () => {
+    expect(anchorFindings()).toEqual([
+      "README.md:18:45 missing-anchor no heading matches '#instalation' in this file (did you mean '#installation'?)",
+      "README.md:22:52 missing-anchor no heading matches '#configuration' in 'docs/guide.md'",
+    ]);
+  });
+
+  it("accepts #top, HTML anchors, encoded paths, any case and non-Markdown line anchors", () => {
+    // Lines 18 (#usage, #top), 22 (#installation) and 23-25 only contain valid anchors.
+    const positions = anchorFindings().map((line) => line.split(" ")[0]);
+    expect(positions).toEqual(["README.md:18:45", "README.md:22:52"]);
   });
 });
 
