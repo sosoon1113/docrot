@@ -23,3 +23,5 @@ Guide: [installation](docs/guide.md#installation), [configuration](docs/guide.md
 Encoded and mixed-case anchors work: [notes](docs/my%20notes.md#Notes).
 Line anchors in other files are ignored: [logo source](docs/img/logo.svg#L1).
 <a name="custom-anchor"></a>Explicit anchors count too: [custom](#custom-anchor).
+
+Letter case matters on GitHub: [guide](Docs/Guide.md), ![logo](docs/img/Logo.svg), `SRC/index.ts`.

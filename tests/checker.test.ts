@@ -89,20 +89,21 @@ describe("check", () => {
     });
     const byRule = (rule: string) => findings.filter((f) => f.rule === rule);
     expect(byRule("missing-anchor")).toEqual([]);
-    expect(byRule("missing-image").map((f) => f.severity)).toEqual(["warning", "warning"]);
-    expect(byRule("broken-link").map((f) => f.severity)).toEqual(["error", "error"]);
+    expect(byRule("missing-image").map((f) => f.severity)).toEqual(["warning", "warning", "warning"]);
+    expect(byRule("broken-link").map((f) => f.severity)).toEqual(["error", "error", "error"]);
   });
 
   it("skips ignored link targets", () => {
     const { findings } = check({
       root: fixtureRoot,
       files: ["README.md"],
-      ignoreTargets: ["api/**", "docs/img/*.png", "#instalation"],
+      ignoreTargets: ["api/**", "docs/img/*.png", "#instalation", "Docs/**", "SRC/*"],
     });
     expect(findings.map((f) => f.message)).toEqual([
       "link target 'docs/setup.md' does not exist",
       "image 'docs/img' does not exist",
       "no heading matches '#configuration' in 'docs/guide.md'",
+      "image 'docs/img/Logo.svg' differs in letter case from 'docs/img/logo.svg'",
     ]);
   });
 

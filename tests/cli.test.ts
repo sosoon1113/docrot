@@ -27,7 +27,7 @@ describe("docrot CLI", () => {
     expect(code).toBe(1);
     expect(stdout).toContain("README.md\n");
     expect(stdout).toContain("docs/references.md\n");
-    expect(stdout).toMatch(/13 problems \(11 errors, 2 warnings\) in 3 files, 5 files checked\n$/);
+    expect(stdout).toMatch(/16 problems \(13 errors, 3 warnings\) in 3 files, 5 files checked\n$/);
   });
 
   it("prints findings grouped by file with aligned positions", async () => {
