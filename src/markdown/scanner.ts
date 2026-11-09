@@ -44,12 +44,22 @@ export interface Reference {
   column: number;
 }
 
+/** Inline code such as `src/index.ts`. */
+export interface CodeSpan {
+  /** Contents without the backticks. */
+  text: string;
+  line: number;
+  /** Column of the opening backtick. */
+  column: number;
+}
+
 export interface MarkdownDocument {
   headings: Heading[];
   links: Link[];
   references: Reference[];
   /** Normalized labels of every `[label]: target` definition. */
   definitions: Set<string>;
+  codeSpans: CodeSpan[];
   /** Ids declared in HTML, e.g. `<a name="faq">` or `<h2 id="faq">`. */
   anchors: string[];
 }
@@ -70,6 +80,7 @@ export function scanMarkdown(source: string): MarkdownDocument {
     links: [],
     references: [],
     definitions: new Set(),
+    codeSpans: [],
     anchors: [],
   };
   const slugger = new Slugger();
@@ -183,6 +194,9 @@ function collectInline(line: string, lineNumber: number, doc: MarkdownDocument):
   for (const match of line.matchAll(HTML_ID)) {
     if (match[1]) doc.anchors.push(match[1]);
   }
+  for (const span of codeSpans(line)) {
+    doc.codeSpans.push({ text: span.text, line: lineNumber, column: span.start + 1 });
+  }
 
   let position = 0;
   while (position < line.length) {
@@ -215,6 +229,49 @@ function collectInline(line: string, lineNumber: number, doc: MarkdownDocument):
       if (label) doc.references.push({ label, image, line: lineNumber, column });
     }
   }
+}
+
+/**
+ * Code spans on one line. As in CommonMark, a span opens with a run of
+ * backticks and closes with a run of the same length; one surrounding space
+ * is stripped when the content has a space on both sides.
+ */
+function codeSpans(line: string): { start: number; end: number; text: string }[] {
+  const spans: { start: number; end: number; text: string }[] = [];
+  let position = 0;
+  while (position < line.length) {
+    const start = line.indexOf("`", position);
+    if (start === -1) break;
+    let ticks = 1;
+    while (line[start + ticks] === "`") ticks++;
+    if (isEscaped(line, start)) {
+      position = start + ticks;
+      continue;
+    }
+
+    let close = -1;
+    for (let i = line.indexOf("`", start + ticks); i !== -1; i = line.indexOf("`", i)) {
+      let run = 1;
+      while (line[i + run] === "`") run++;
+      if (run === ticks) {
+        close = i;
+        break;
+      }
+      i += run;
+    }
+    if (close === -1) {
+      position = start + ticks; // unmatched backticks are literal text
+      continue;
+    }
+
+    let text = line.slice(start + ticks, close);
+    if (text.length > 2 && text.startsWith(" ") && text.endsWith(" ") && text.trim() !== "") {
+      text = text.slice(1, -1);
+    }
+    spans.push({ start, end: close + ticks, text });
+    position = close + ticks;
+  }
+  return spans;
 }
 
 function isEscaped(line: string, index: number): boolean {

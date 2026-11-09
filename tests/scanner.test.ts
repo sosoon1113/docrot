@@ -149,6 +149,29 @@ describe("reference-style links", () => {
   });
 });
 
+describe("code spans", () => {
+  it("records inline code with the column of the opening backtick", () => {
+    const { codeSpans } = scanMarkdown(md("intro", "Edit `src/app.ts` or ``a ` b``."));
+    expect(codeSpans).toEqual([
+      { text: "src/app.ts", line: 2, column: 6 },
+      { text: "a ` b", line: 2, column: 22 },
+    ]);
+  });
+
+  it("strips one surrounding space and ignores unmatched backticks", () => {
+    const { codeSpans } = scanMarkdown("`` `tick` `` and then a lone ` backtick");
+    expect(codeSpans.map((span) => span.text)).toEqual(["`tick`"]);
+  });
+
+  it("does not open a span at an escaped backtick", () => {
+    expect(scanMarkdown("\\`not code`").codeSpans).toEqual([]);
+  });
+
+  it("skips fenced code blocks", () => {
+    expect(scanMarkdown(md("```", "`src/a.ts`", "```")).codeSpans).toEqual([]);
+  });
+});
+
 describe("front matter", () => {
   it("is skipped while keeping line numbers", () => {
     const { headings, links } = scanMarkdown(md("---", "title: x", "---", "# Hello", "[a](a.md)"));

@@ -84,6 +84,7 @@ it("starterConfig lists every rule with its default severity", () => {
     "missing-anchor": "error",
     "missing-image": "error",
     "undefined-reference": "error",
+    "stale-code-path": "warning",
   });
 });
 

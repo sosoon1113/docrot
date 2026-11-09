@@ -1,7 +1,13 @@
 export { type CheckOptions, type CheckResult, check } from "./checker.js";
 export { DocrotError } from "./errors.js";
 export { type FindOptions, findMarkdownFiles } from "./files.js";
-export type { Heading, Link, MarkdownDocument, Reference } from "./markdown/scanner.js";
+export type {
+  CodeSpan,
+  Heading,
+  Link,
+  MarkdownDocument,
+  Reference,
+} from "./markdown/scanner.js";
 export { normalizeLabel, scanMarkdown } from "./markdown/scanner.js";
 export { Slugger, slugify } from "./markdown/slug.js";
 export { formatPretty } from "./reporters/pretty.js";

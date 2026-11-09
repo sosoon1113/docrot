@@ -15,15 +15,19 @@ describe("broken-link and missing-image", () => {
   });
 
   it("resolves links relative to the file that contains them", () => {
-    expect(checkFixture("docs/guide.md")).toEqual([
+    expect(checkFixture("docs/guide.md").filter((line) => line.includes("broken-link"))).toEqual([
       "docs/guide.md:7:12 broken-link link target './setup.md' does not exist",
     ]);
   });
 
   it("sorts findings by file and position", () => {
-    const files = checkFixture("docs/guide.md", "README.md").map((line) => line.split(":")[0]);
-    expect(files.at(-1)).toBe("docs/guide.md");
-    expect(files.filter((file) => file === "README.md")).toHaveLength(files.length - 1);
+    const findings = check({ root: fixtureRoot, files: ["docs/guide.md", "README.md"] }).findings;
+    const keys = findings.map((f) => [f.file, f.line, f.column] as const);
+    const sorted = [...keys].sort(
+      (a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : a[1] - b[1] || a[2] - b[2]),
+    );
+    expect(keys).toEqual(sorted);
+    expect(new Set(keys.map((key) => key[0]))).toEqual(new Set(["README.md", "docs/guide.md"]));
   });
 });
 

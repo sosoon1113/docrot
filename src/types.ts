@@ -1,7 +1,12 @@
 /** How serious a finding is. Errors fail the run by default; warnings don't. */
 export type Severity = "error" | "warning";
 
-export type RuleId = "broken-link" | "missing-anchor" | "missing-image" | "undefined-reference";
+export type RuleId =
+  | "broken-link"
+  | "missing-anchor"
+  | "missing-image"
+  | "undefined-reference"
+  | "stale-code-path";
 
 /** A problem found in a Markdown file. */
 export interface Finding {

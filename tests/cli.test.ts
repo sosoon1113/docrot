@@ -27,7 +27,7 @@ describe("docrot CLI", () => {
     expect(code).toBe(1);
     expect(stdout).toContain("README.md\n");
     expect(stdout).toContain("docs/references.md\n");
-    expect(stdout).toMatch(/11 problems \(11 errors, 0 warnings\) in 3 files, 4 files checked\n$/);
+    expect(stdout).toMatch(/13 problems \(11 errors, 2 warnings\) in 3 files, 4 files checked\n$/);
   });
 
   it("prints findings grouped by file with aligned positions", async () => {
@@ -35,9 +35,11 @@ describe("docrot CLI", () => {
     expect(stdout).toBe(
       [
         "docs/guide.md",
-        "  7:12  error    link target './setup.md' does not exist  broken-link",
+        "  7:12   error    link target './setup.md' does not exist  broken-link",
+        "  15:19  warning  'lib/legacy.js' is mentioned in inline code but does not exist  stale-code-path",
+        "  15:39  warning  '../tools/build.sh' is mentioned in inline code but does not exist  stale-code-path",
         "",
-        "1 problem (1 error, 0 warnings) in 1 file, 1 file checked",
+        "3 problems (1 error, 2 warnings) in 1 file, 1 file checked",
         "",
       ].join("\n"),
     );
