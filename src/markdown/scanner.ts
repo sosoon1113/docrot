@@ -1,9 +1,10 @@
 /**
  * A small, line-oriented Markdown scanner.
  *
- * It extracts only what docrot needs (headings, links, images and HTML
- * anchors) together with their positions. Fenced code blocks and YAML front
- * matter are skipped. It is deliberately not a full CommonMark parser.
+ * It extracts only what docrot needs (headings, links, images, reference
+ * definitions and HTML anchors) together with their positions. Fenced code
+ * blocks and YAML front matter are skipped. It is deliberately not a full
+ * CommonMark parser.
  */
 
 import { Slugger } from "./slug.js";
@@ -17,11 +18,27 @@ export interface Heading {
   line: number;
 }
 
+/**
+ * A link or image. Reference definitions (`[label]: target`) are reported as
+ * links at the definition, so each target is checked once however often it's
+ * used.
+ */
 export interface Link {
-  /** Link text, or the alt text of an image. */
+  /** Link text, the alt text of an image, or the label of a definition. */
   text: string;
   /** Destination as written, e.g. `docs/setup.md#install`. */
   target: string;
+  image: boolean;
+  line: number;
+  column: number;
+  /** Set for reference definitions: the normalized label. */
+  definition?: string;
+}
+
+/** A use of a reference-style link: `[text][label]` or `[label][]`. */
+export interface Reference {
+  /** Normalized label (trimmed, lowercase, single spaces). */
+  label: string;
   image: boolean;
   line: number;
   column: number;
@@ -30,6 +47,9 @@ export interface Link {
 export interface MarkdownDocument {
   headings: Heading[];
   links: Link[];
+  references: Reference[];
+  /** Normalized labels of every `[label]: target` definition. */
+  definitions: Set<string>;
   /** Ids declared in HTML, e.g. `<a name="faq">` or `<h2 id="faq">`. */
   anchors: string[];
 }
@@ -40,10 +60,18 @@ const ATX_HEADING = /^ {0,3}(#{1,6})(?:[ \t]+(.*?))?(?:[ \t]+#+)?[ \t]*$/;
 const SETEXT_UNDERLINE = /^ {0,3}(=+|-+)[ \t]*$/;
 const NOT_PARAGRAPH = /^ {0,3}(?:[-*+][ \t]|\d+[.)][ \t]|>|\||<|#)/;
 const HTML_ID = /<[a-z][^>]*?\s(?:id|name)\s*=\s*["']([^"']+)["']/gi;
+const DEFINITION =
+  /^( {0,3})\[([^\]^][^\]]*)\]:[ \t]*(<[^>]*>|\S+)(?:[ \t]+(?:"[^"]*"|'[^']*'|\([^)]*\)))?[ \t]*$/;
 
 export function scanMarkdown(source: string): MarkdownDocument {
   const lines = source.split(/\r?\n/);
-  const doc: MarkdownDocument = { headings: [], links: [], anchors: [] };
+  const doc: MarkdownDocument = {
+    headings: [],
+    links: [],
+    references: [],
+    definitions: new Set(),
+    anchors: [],
+  };
   const slugger = new Slugger();
   const addHeading = (text: string, level: number, line: number) => {
     doc.headings.push({ text, slug: slugger.slug(text), level, line });
@@ -91,11 +119,42 @@ export function scanMarkdown(source: string): MarkdownDocument {
       continue;
     }
 
+    const definition = DEFINITION.exec(line);
+    if (definition) {
+      const [, indent = "", label = "", rawTarget = ""] = definition;
+      const normalized = normalizeLabel(label);
+      if (!doc.definitions.has(normalized)) {
+        // The first definition of a label wins, as in CommonMark.
+        doc.definitions.add(normalized);
+        doc.links.push({
+          text: label,
+          target: rawTarget.replace(/^<(.*)>$/, "$1"),
+          image: false,
+          line: lineNumber,
+          column: indent.length + 1,
+          definition: normalized,
+        });
+      }
+      previous = null;
+      continue;
+    }
+
     collectInline(line, lineNumber, doc);
     previous = NOT_PARAGRAPH.test(line) ? null : line;
   }
 
+  // A definition used by an image is checked as an image.
+  const imageLabels = new Set(doc.references.filter((r) => r.image).map((r) => r.label));
+  for (const link of doc.links) {
+    if (link.definition !== undefined && imageLabels.has(link.definition)) link.image = true;
+  }
+
   return doc;
+}
+
+/** Normalize a reference label the way CommonMark matches them. */
+export function normalizeLabel(label: string): string {
+  return label.trim().replace(/\s+/g, " ").toLowerCase();
 }
 
 /** Remove inline Markdown and HTML so only the visible heading text is left. */
@@ -133,19 +192,28 @@ function collectInline(line: string, lineNumber: number, doc: MarkdownDocument):
 
     if (isEscaped(line, open)) continue;
     const close = matchingBracket(line, open);
-    if (close === -1 || line[close + 1] !== "(") continue;
-
-    const destination = parseDestination(line, close + 2);
-    if (!destination) continue;
+    if (close === -1) continue;
 
     const image = open > 0 && line[open - 1] === "!" && !isEscaped(line, open - 1);
-    doc.links.push({
-      text: line.slice(open + 1, close),
-      target: destination.target,
-      image,
-      line: lineNumber,
-      column: image ? open : open + 1,
-    });
+    const text = line.slice(open + 1, close);
+    const column = image ? open : open + 1;
+
+    if (line[close + 1] === "(") {
+      const destination = parseDestination(line, close + 2);
+      if (destination) {
+        doc.links.push({ text, target: destination.target, image, line: lineNumber, column });
+      }
+      continue;
+    }
+
+    if (line[close + 1] === "[") {
+      // `[text][label]` or collapsed `[label][]`. Skip `matrix[i][j]`-style prose.
+      const labelEnd = line.indexOf("]", close + 2);
+      const before = line[image ? open - 2 : open - 1] ?? "";
+      if (labelEnd === -1 || /\w/.test(before)) continue;
+      const label = normalizeLabel(line.slice(close + 2, labelEnd) || text);
+      if (label) doc.references.push({ label, image, line: lineNumber, column });
+    }
   }
 }
 

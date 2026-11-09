@@ -111,6 +111,44 @@ describe("links", () => {
   });
 });
 
+describe("reference-style links", () => {
+  it("records definitions as links at the definition line", () => {
+    const doc = scanMarkdown(md("[Docs][docs]", "", '[docs]: ./docs/ "All docs"', " [Logo]: <img/logo.png>"));
+    expect(doc.definitions).toEqual(new Set(["docs", "logo"]));
+    expect(doc.links).toEqual([
+      { text: "docs", target: "./docs/", image: false, line: 3, column: 1, definition: "docs" },
+      { text: "Logo", target: "img/logo.png", image: false, line: 4, column: 2, definition: "logo" },
+    ]);
+  });
+
+  it("records full and collapsed references with normalized labels", () => {
+    const doc = scanMarkdown("See [the  Guide][User   Guide] and [FAQ][].");
+    expect(doc.references).toEqual([
+      { label: "user guide", image: false, line: 1, column: 5 },
+      { label: "faq", image: false, line: 1, column: 36 },
+    ]);
+  });
+
+  it("marks definitions used by images as images", () => {
+    const doc = scanMarkdown(md("[![CI][badge]][ci]", "", "[badge]: badge.svg", "[ci]: https://ci"));
+    expect(doc.links.map((l) => [l.definition, l.image])).toEqual([
+      ["badge", true],
+      ["ci", false],
+    ]);
+  });
+
+  it("keeps the first of duplicate definitions", () => {
+    const doc = scanMarkdown(md("[a]: first.md", "[A]: second.md"));
+    expect(doc.links.map((l) => l.target)).toEqual(["first.md"]);
+  });
+
+  it("ignores footnotes, shortcut brackets and index syntax", () => {
+    const doc = scanMarkdown(md("[^1]: A footnote", "Text[^1] with [brackets] and matrix[i][j]."));
+    expect(doc.definitions.size).toBe(0);
+    expect(doc.references).toEqual([]);
+  });
+});
+
 describe("front matter", () => {
   it("is skipped while keeping line numbers", () => {
     const { headings, links } = scanMarkdown(md("---", "title: x", "---", "# Hello", "[a](a.md)"));

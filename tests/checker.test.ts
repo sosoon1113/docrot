@@ -37,10 +37,27 @@ describe("missing-anchor", () => {
     ]);
   });
 
+  it("checks anchors in reference definitions", () => {
+    expect(checkFixture("docs/references.md")).toContain(
+      "docs/references.md:8:1 missing-anchor no heading matches '#faq' in '../README.md'",
+    );
+  });
+
   it("accepts #top, HTML anchors, encoded paths, any case and non-Markdown line anchors", () => {
     // Lines 18 (#usage, #top), 22 (#installation) and 23-25 only contain valid anchors.
     const positions = anchorFindings().map((line) => line.split(" ")[0]);
     expect(positions).toEqual(["README.md:18:45", "README.md:22:52"]);
+  });
+});
+
+describe("reference-style links", () => {
+  it("checks each definition once and flags undefined labels", () => {
+    expect(checkFixture("docs/references.md")).toEqual([
+      "docs/references.md:3:64 undefined-reference reference '[issues]' is not defined",
+      "docs/references.md:8:1 missing-anchor no heading matches '#faq' in '../README.md'",
+      "docs/references.md:10:1 missing-image image 'img/build.svg' does not exist",
+      "docs/references.md:11:3 broken-link link target 'missing.md' does not exist",
+    ]);
   });
 });
 
