@@ -16,6 +16,7 @@ describe("findMarkdownFiles", () => {
       "docs/guide.md",
       "docs/my notes.md",
       "docs/references.md",
+      "docs/syntax.md",
     ]);
   });
 
@@ -25,6 +26,7 @@ describe("findMarkdownFiles", () => {
       "docs/guide.md",
       "docs/my notes.md",
       "docs/references.md",
+      "docs/syntax.md",
     ]);
   });
 

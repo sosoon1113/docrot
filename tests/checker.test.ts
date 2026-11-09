@@ -66,6 +66,10 @@ describe("reference-style links", () => {
   });
 });
 
+it("does not report examples in inline code or commented-out Markdown", () => {
+  expect(checkFixture("docs/syntax.md")).toEqual([]);
+});
+
 describe("check", () => {
   it("reports how many files were checked", () => {
     const result = check({ root: fixtureRoot, files: ["README.md", "docs/guide.md"] });

@@ -89,26 +89,32 @@ export function scanMarkdown(source: string): MarkdownDocument {
   };
 
   let fence: { char: string; length: number } | null = null;
+  let inComment = false; // inside a multi-line <!-- HTML comment -->
   let previous: string | null = null; // last paragraph line, for setext headings
 
   for (let index = frontMatterEnd(lines); index < lines.length; index++) {
-    const line = lines[index] ?? "";
+    const raw = lines[index] ?? "";
     const lineNumber = index + 1;
 
     if (fence) {
-      const close = FENCE_CLOSE.exec(line)?.[1];
+      const close = FENCE_CLOSE.exec(raw)?.[1];
       if (close && close[0] === fence.char && close.length >= fence.length) {
         fence = null;
       }
       continue;
     }
 
-    const open = FENCE_OPEN.exec(line)?.[1];
+    const open = inComment ? undefined : FENCE_OPEN.exec(raw)?.[1];
     if (open) {
       fence = { char: open[0] ?? "`", length: open.length };
       previous = null;
       continue;
     }
+
+    // Blank out comments (keeping columns) so commented-out links and headings are ignored.
+    const masked = maskComments(raw, inComment);
+    inComment = masked.inComment;
+    const line = masked.text;
 
     if (line.trim() === "") {
       previous = null;
@@ -190,40 +196,91 @@ function frontMatterEnd(lines: string[]): number {
   return 0; // unterminated: treat the whole file as Markdown
 }
 
-function collectInline(line: string, lineNumber: number, doc: MarkdownDocument): void {
-  for (const match of line.matchAll(HTML_ID)) {
-    if (match[1]) doc.anchors.push(match[1]);
+/**
+ * Replace the parts of `line` inside `<!-- -->` comments with spaces.
+ * `inComment` says whether the line starts inside a comment opened earlier.
+ * Comment markers inside code spans don't count.
+ */
+function maskComments(line: string, inComment: boolean): { text: string; inComment: boolean } {
+  if (!inComment && !line.includes("<!--")) return { text: line, inComment };
+
+  const spans = codeSpans(line);
+  const inCode = (index: number) => spans.some((s) => index >= s.start && index < s.end);
+  let text = "";
+  let position = 0;
+  let open = inComment;
+
+  while (position < line.length) {
+    if (open) {
+      const end = line.indexOf("-->", position);
+      const stop = end === -1 ? line.length : end + 3;
+      text += " ".repeat(stop - position);
+      position = stop;
+      open = end === -1;
+      if (open) break;
+    } else {
+      let start = line.indexOf("<!--", position);
+      while (start !== -1 && inCode(start)) start = line.indexOf("<!--", start + 4);
+      if (start === -1) {
+        text += line.slice(position);
+        break;
+      }
+      text += line.slice(position, start);
+      position = start;
+      open = true;
+    }
   }
+  return { text, inComment: open };
+}
+
+function collectInline(line: string, lineNumber: number, doc: MarkdownDocument): void {
+  // Links and anchors are looked for in a copy with code spans blanked out,
+  // so `[text](path.md)` written as an example is not treated as a link.
+  let scanned = line;
   for (const span of codeSpans(line)) {
     doc.codeSpans.push({ text: span.text, line: lineNumber, column: span.start + 1 });
+    scanned =
+      scanned.slice(0, span.start) + " ".repeat(span.end - span.start) + scanned.slice(span.end);
   }
+  for (const match of scanned.matchAll(HTML_ID)) {
+    if (match[1]) doc.anchors.push(match[1]);
+  }
+  collectLinks(line, scanned, lineNumber, doc);
+}
 
+/** Find links in `scanned` (code masked) and take their text from the original `line`. */
+function collectLinks(
+  line: string,
+  scanned: string,
+  lineNumber: number,
+  doc: MarkdownDocument,
+): void {
   let position = 0;
-  while (position < line.length) {
-    const open = line.indexOf("[", position);
+  while (position < scanned.length) {
+    const open = scanned.indexOf("[", position);
     if (open === -1) break;
     position = open + 1; // keep scanning inside the text so nested images are found
 
-    if (isEscaped(line, open)) continue;
-    const close = matchingBracket(line, open);
+    if (isEscaped(scanned, open)) continue;
+    const close = matchingBracket(scanned, open);
     if (close === -1) continue;
 
-    const image = open > 0 && line[open - 1] === "!" && !isEscaped(line, open - 1);
+    const image = open > 0 && scanned[open - 1] === "!" && !isEscaped(scanned, open - 1);
     const text = line.slice(open + 1, close);
     const column = image ? open : open + 1;
 
-    if (line[close + 1] === "(") {
-      const destination = parseDestination(line, close + 2);
+    if (scanned[close + 1] === "(") {
+      const destination = parseDestination(scanned, close + 2);
       if (destination) {
         doc.links.push({ text, target: destination.target, image, line: lineNumber, column });
       }
       continue;
     }
 
-    if (line[close + 1] === "[") {
+    if (scanned[close + 1] === "[") {
       // `[text][label]` or collapsed `[label][]`. Skip `matrix[i][j]`-style prose.
-      const labelEnd = line.indexOf("]", close + 2);
-      const before = line[image ? open - 2 : open - 1] ?? "";
+      const labelEnd = scanned.indexOf("]", close + 2);
+      const before = scanned[image ? open - 2 : open - 1] ?? "";
       if (labelEnd === -1 || /\w/.test(before)) continue;
       const label = normalizeLabel(line.slice(close + 2, labelEnd) || text);
       if (label) doc.references.push({ label, image, line: lineNumber, column });

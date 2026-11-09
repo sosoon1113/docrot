@@ -172,6 +172,43 @@ describe("code spans", () => {
   });
 });
 
+describe("inline code and HTML comments", () => {
+  it("ignores links written inside inline code", () => {
+    const doc = scanMarkdown("Write `[text](path.md)` or ``![alt](img.png)``, then [real](real.md).");
+    expect(doc.links.map((l) => [l.target, l.column])).toEqual([["real.md", 54]]);
+    expect(doc.codeSpans.map((s) => s.text)).toEqual(["[text](path.md)", "![alt](img.png)"]);
+  });
+
+  it("keeps link text that contains code", () => {
+    expect(scanMarkdown("[the `check` command](cli.md)").links[0]?.text).toBe("the `check` command");
+  });
+
+  it("ignores links, anchors and code inside a one-line comment", () => {
+    const doc = scanMarkdown('<!-- [old](old.md) <a id="x"></a> `a/b.ts` --> [new](new.md)');
+    expect(doc.links.map((l) => [l.target, l.column])).toEqual([["new.md", 48]]);
+    expect(doc.anchors).toEqual([]);
+    expect(doc.codeSpans).toEqual([]);
+  });
+
+  it("ignores everything inside a multi-line comment", () => {
+    const doc = scanMarkdown(
+      md("<!--", "## Hidden", "[draft](draft.md)", "[ref]: ref.md", "-->", "## Shown", "[b](b.md)"),
+    );
+    expect(doc.headings.map((h) => h.text)).toEqual(["Shown"]);
+    expect(doc.links.map((l) => l.target)).toEqual(["b.md"]);
+  });
+
+  it("does not open a comment inside inline code", () => {
+    const doc = scanMarkdown(md("Use `<!--` to start a comment: [docs](docs.md)", "[next](next.md)"));
+    expect(doc.links.map((l) => l.target)).toEqual(["docs.md", "next.md"]);
+  });
+
+  it("does not open a code fence inside a comment", () => {
+    const doc = scanMarkdown(md("<!--", "```", "-->", "[after](after.md)"));
+    expect(doc.links.map((l) => l.target)).toEqual(["after.md"]);
+  });
+});
+
 describe("front matter", () => {
   it("is skipped while keeping line numbers", () => {
     const { headings, links } = scanMarkdown(md("---", "title: x", "---", "# Hello", "[a](a.md)"));
