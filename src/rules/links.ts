@@ -13,6 +13,7 @@ export interface LocalLink {
 export function* localLinks(context: RuleContext, images: boolean): Generator<LocalLink> {
   for (const link of context.document.links) {
     if (link.image !== images || link.target === "" || isExternal(link.target)) continue;
+    if (context.isIgnored(link.target)) continue;
     const target = parseTarget(link.target);
     const resolved =
       target.path === "" ? null : resolveLinkPath(context.file, target.path, context.project.root);

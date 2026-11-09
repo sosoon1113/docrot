@@ -1,11 +1,13 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { Command, CommanderError } from "commander";
 import { check } from "./checker.js";
+import { CONFIG_FILES, loadConfig, starterConfig } from "./config.js";
 import { DocrotError } from "./errors.js";
 import { findMarkdownFiles } from "./files.js";
-import { supportsColor } from "./reporters/colors.js";
+import { createColors, supportsColor } from "./reporters/colors.js";
 import { formatPretty } from "./reporters/pretty.js";
+import { rules } from "./rules/index.js";
 
 export const VERSION = (
   JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")) as {
@@ -23,6 +25,7 @@ export interface CliIo {
 
 interface CheckFlags {
   root: string;
+  config?: string;
   quiet?: boolean;
 }
 
@@ -39,12 +42,28 @@ export async function main(argv: readonly string[], io: CliIo = processIo()): Pr
     .version(VERSION, "-v, --version")
     .argument("[paths...]", "Markdown files or directories to check (default: whole project)")
     .option("--root <dir>", "project root; links starting with / resolve against it", ".")
+    .option("-c, --config <file>", `config file (default: ${CONFIG_FILES.join(" or ")} in the root)`)
     .option("-q, --quiet", "only report errors, not warnings")
     .showHelpAfterError("(run docrot --help for usage)")
     .exitOverride()
     .configureOutput({ writeOut: io.stdout, writeErr: io.stderr })
     .action((paths: string[], flags: CheckFlags) => {
       exitCode = runCheck(paths, flags, io);
+    });
+
+  program
+    .command("init")
+    .description(`write a starter ${CONFIG_FILES[0]} to the current directory`)
+    .option("-f, --force", "overwrite an existing config file")
+    .action((flags: { force?: boolean }) => {
+      exitCode = runInit(flags, io);
+    });
+
+  program
+    .command("rules")
+    .description("list the available rules")
+    .action(() => {
+      exitCode = runRules(io);
     });
 
   try {
@@ -64,19 +83,47 @@ export async function main(argv: readonly string[], io: CliIo = processIo()): Pr
 
 function runCheck(paths: string[], flags: CheckFlags, io: CliIo): number {
   const root = path.resolve(io.cwd, flags.root);
+  const { config } = loadConfig(root, flags.config && path.resolve(io.cwd, flags.config));
   const files = findMarkdownFiles({
     root,
     paths: paths.map((p) => path.resolve(io.cwd, p)),
+    include: config.include,
+    exclude: config.exclude,
   });
   if (files.length === 0) {
     throw new DocrotError("no Markdown files found");
   }
 
-  const result = check({ root, files });
+  const result = check({
+    root,
+    files,
+    settings: config.rules,
+    ignoreTargets: config.ignoreTargets,
+  });
   const shown = flags.quiet ? result.findings.filter((f) => f.severity === "error") : result.findings;
   io.stdout(formatPretty(shown, { filesChecked: result.filesChecked }, { color: io.color }));
 
   return result.findings.some((f) => f.severity === "error") ? EXIT_PROBLEMS : EXIT_OK;
+}
+
+function runInit(flags: { force?: boolean }, io: CliIo): number {
+  const file = path.join(io.cwd, CONFIG_FILES[0]);
+  if (existsSync(file) && !flags.force) {
+    throw new DocrotError(`${CONFIG_FILES[0]} already exists (use --force to overwrite)`);
+  }
+  writeFileSync(file, `${JSON.stringify(starterConfig(), null, 2)}\n`);
+  io.stdout(`Wrote ${CONFIG_FILES[0]}\n`);
+  return EXIT_OK;
+}
+
+function runRules(io: CliIo): number {
+  const c = createColors(io.color);
+  const width = Math.max(...rules.map((rule) => rule.id.length));
+  for (const rule of rules) {
+    const severity = rule.defaultSeverity.padEnd(7);
+    io.stdout(`${c.bold(rule.id.padEnd(width))}  ${c.dim(severity)}  ${rule.description}\n`);
+  }
+  return EXIT_OK;
 }
 
 function processIo(): CliIo {

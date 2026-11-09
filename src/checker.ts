@@ -1,8 +1,10 @@
 import path from "node:path";
+import type { RuleSettings } from "./config.js";
 import { DocrotError } from "./errors.js";
 import { Project } from "./project.js";
 import { type Rule, rules as builtInRules } from "./rules/index.js";
 import type { Finding } from "./types.js";
+import { matcher } from "./util/glob.js";
 
 export interface CheckOptions {
   /** Markdown files to check, absolute or relative to `root`. */
@@ -11,6 +13,10 @@ export interface CheckOptions {
   root?: string;
   /** Rules to run. Defaults to every built-in rule. */
   rules?: readonly Rule[];
+  /** Per-rule severity overrides; `"off"` skips the rule. */
+  settings?: RuleSettings;
+  /** Link targets to skip, as globs matched against the target as written. */
+  ignoreTargets?: readonly string[];
 }
 
 export interface CheckResult {
@@ -20,7 +26,11 @@ export interface CheckResult {
 
 export function check(options: CheckOptions): CheckResult {
   const project = new Project(options.root ?? process.cwd());
-  const rules = options.rules ?? builtInRules;
+  const isIgnored = matcher(options.ignoreTargets ?? []);
+  const active = (options.rules ?? builtInRules).flatMap((rule) => {
+    const severity = options.settings?.[rule.id] ?? rule.defaultSeverity;
+    return severity === "off" ? [] : [{ rule, severity }];
+  });
   const findings: Finding[] = [];
 
   for (const input of options.files) {
@@ -29,14 +39,9 @@ export function check(options: CheckOptions): CheckResult {
     if (document === null) {
       throw new DocrotError(`cannot read '${input}'`);
     }
-    for (const rule of rules) {
-      for (const report of rule.check({ project, file, document })) {
-        findings.push({
-          rule: rule.id,
-          severity: rule.defaultSeverity,
-          file: project.relative(file),
-          ...report,
-        });
+    for (const { rule, severity } of active) {
+      for (const report of rule.check({ project, file, document, isIgnored })) {
+        findings.push({ rule: rule.id, severity, file: project.relative(file), ...report });
       }
     }
   }

@@ -7,6 +7,8 @@ export interface RuleContext {
   /** Absolute path of the document being checked. */
   file: string;
   document: MarkdownDocument;
+  /** True for link targets the user asked to skip (`ignoreTargets`). */
+  isIgnored(target: string): boolean;
 }
 
 /** What a rule reports; the checker adds the rule id, severity and file. */

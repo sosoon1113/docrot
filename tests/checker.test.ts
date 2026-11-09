@@ -73,6 +73,31 @@ describe("check", () => {
     expect(new Set(result.findings.map((f) => f.rule))).toEqual(new Set(["broken-link"]));
   });
 
+  it("applies severity overrides and turns rules off", () => {
+    const { findings } = check({
+      root: fixtureRoot,
+      files: ["README.md"],
+      settings: { "missing-image": "warning", "missing-anchor": "off" },
+    });
+    const byRule = (rule: string) => findings.filter((f) => f.rule === rule);
+    expect(byRule("missing-anchor")).toEqual([]);
+    expect(byRule("missing-image").map((f) => f.severity)).toEqual(["warning", "warning"]);
+    expect(byRule("broken-link").map((f) => f.severity)).toEqual(["error", "error"]);
+  });
+
+  it("skips ignored link targets", () => {
+    const { findings } = check({
+      root: fixtureRoot,
+      files: ["README.md"],
+      ignoreTargets: ["api/**", "docs/img/*.png", "#instalation"],
+    });
+    expect(findings.map((f) => f.message)).toEqual([
+      "link target 'docs/setup.md' does not exist",
+      "image 'docs/img' does not exist",
+      "no heading matches '#configuration' in 'docs/guide.md'",
+    ]);
+  });
+
   it("accepts absolute file paths", () => {
     const result = check({ root: fixtureRoot, files: [`${fixtureRoot}/docs/guide.md`] });
     expect(result.findings[0]?.file).toBe("docs/guide.md");
