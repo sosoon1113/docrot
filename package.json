@@ -1,13 +1,17 @@
 {
   "name": "docrot",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Find stale documentation: broken links, missing anchors and outdated file paths in your Markdown.",
   "keywords": [
     "markdown",
     "documentation",
+    "docs",
     "links",
+    "broken-links",
     "lint",
-    "cli"
+    "cli",
+    "ci",
+    "github-actions"
   ],
   "license": "MIT",
   "author": "sosoon1113",
@@ -41,7 +45,7 @@
     "test:coverage": "vitest run --coverage",
     "lint": "biome check .",
     "format": "biome check --write .",
-    "prepublishOnly": "npm run build"
+    "prepare": "npm run build"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.6.6",
