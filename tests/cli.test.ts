@@ -62,6 +62,38 @@ describe("docrot CLI", () => {
     expect(stdout).toContain("link target '/LICENSE.txt' does not exist");
   });
 
+  it("supports JSON output", async () => {
+    const { code, stdout } = await run(["docs/guide.md", "--format", "json"]);
+    expect(code).toBe(1);
+    const report = JSON.parse(stdout);
+    expect(report).toMatchObject({ filesChecked: 1, errorCount: 1, warningCount: 2 });
+    expect(report.findings[0]).toEqual({
+      rule: "broken-link",
+      severity: "error",
+      file: "docs/guide.md",
+      line: 7,
+      column: 12,
+      message: "link target './setup.md' does not exist",
+    });
+  });
+
+  it("supports GitHub Actions annotations", async () => {
+    const { stdout } = await run(["docs/guide.md", "-f", "github", "--quiet"]);
+    expect(stdout).toBe(
+      [
+        "::error file=docs/guide.md,line=7,col=12,title=docrot (broken-link)::link target './setup.md' does not exist",
+        "docrot: 1 error(s), 0 warning(s) in 1 file(s) checked",
+        "",
+      ].join("\n"),
+    );
+  });
+
+  it("rejects unknown formats", async () => {
+    const { code, stderr } = await run(["--format", "xml"]);
+    expect(code).toBe(2);
+    expect(stderr).toContain("Allowed choices are pretty, json, github");
+  });
+
   it("colors output when asked to", async () => {
     const { stdout } = await run(["docs/guide.md"], { color: true });
     expect(stdout).toContain("\u001b[31merror  \u001b[39m");

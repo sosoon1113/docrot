@@ -1,12 +1,12 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { Command, CommanderError } from "commander";
+import { Command, CommanderError, Option } from "commander";
 import { check } from "./checker.js";
 import { CONFIG_FILES, loadConfig, starterConfig } from "./config.js";
 import { DocrotError } from "./errors.js";
 import { findMarkdownFiles } from "./files.js";
 import { createColors, supportsColor } from "./reporters/colors.js";
-import { formatPretty } from "./reporters/pretty.js";
+import { FORMATS, type Format, formatReport } from "./reporters/index.js";
 import { rules } from "./rules/index.js";
 
 export const VERSION = (
@@ -26,6 +26,7 @@ export interface CliIo {
 interface CheckFlags {
   root: string;
   config?: string;
+  format: Format;
   quiet?: boolean;
 }
 
@@ -43,6 +44,9 @@ export async function main(argv: readonly string[], io: CliIo = processIo()): Pr
     .argument("[paths...]", "Markdown files or directories to check (default: whole project)")
     .option("--root <dir>", "project root; links starting with / resolve against it", ".")
     .option("-c, --config <file>", `config file (default: ${CONFIG_FILES.join(" or ")} in the root)`)
+    .addOption(
+      new Option("-f, --format <format>", "output format").choices(FORMATS).default("pretty"),
+    )
     .option("-q, --quiet", "only report errors, not warnings")
     .showHelpAfterError("(run docrot --help for usage)")
     .exitOverride()
@@ -101,7 +105,8 @@ function runCheck(paths: string[], flags: CheckFlags, io: CliIo): number {
     ignoreTargets: config.ignoreTargets,
   });
   const shown = flags.quiet ? result.findings.filter((f) => f.severity === "error") : result.findings;
-  io.stdout(formatPretty(shown, { filesChecked: result.filesChecked }, { color: io.color }));
+  const summary = { filesChecked: result.filesChecked };
+  io.stdout(formatReport(flags.format, shown, summary, { color: io.color }));
 
   return result.findings.some((f) => f.severity === "error") ? EXIT_PROBLEMS : EXIT_OK;
 }
