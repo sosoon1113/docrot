@@ -1,4 +1,5 @@
 import path from "node:path";
+import { DocrotError } from "./errors.js";
 import { Project } from "./project.js";
 import { type Rule, rules as builtInRules } from "./rules/index.js";
 import type { Finding } from "./types.js";
@@ -15,10 +16,6 @@ export interface CheckOptions {
 export interface CheckResult {
   findings: Finding[];
   filesChecked: number;
-}
-
-export class DocrotError extends Error {
-  override name = "DocrotError";
 }
 
 export function check(options: CheckOptions): CheckResult {

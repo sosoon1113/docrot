@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { check, DocrotError } from "../src/checker.js";
+import { check } from "../src/checker.js";
+import { DocrotError } from "../src/errors.js";
 import { brokenLink } from "../src/rules/brokenLink.js";
 import { checkFixture, fixtureRoot } from "./helpers.js";
 

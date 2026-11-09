@@ -18,6 +18,9 @@
   "homepage": "https://github.com/sosoon1113/docrot#readme",
   "bugs": "https://github.com/sosoon1113/docrot/issues",
   "type": "module",
+  "bin": {
+    "docrot": "./dist/bin.js"
+  },
   "engines": {
     "node": ">=22.12"
   },
@@ -34,11 +37,16 @@
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "prepublishOnly": "npm run build"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",
     "typescript": "^7.0.2",
     "vitest": "^5.1.0"
+  },
+  "dependencies": {
+    "commander": "^15.1.0",
+    "fast-glob": "^3.3.3"
   }
 }
