@@ -1,10 +1,12 @@
 /** How serious a finding is. Errors fail the run by default; warnings don't. */
 export type Severity = "error" | "warning";
 
+export type RuleId = "broken-link" | "missing-image";
+
 /** A problem found in a Markdown file. */
 export interface Finding {
   /** Identifier of the rule that produced the finding. */
-  rule: string;
+  rule: RuleId;
   severity: Severity;
   /** File path relative to the project root, always with `/` separators. */
   file: string;
