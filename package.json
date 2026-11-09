@@ -1,0 +1,44 @@
+{
+  "name": "docrot",
+  "version": "0.0.0",
+  "description": "Find stale documentation: broken links, missing anchors and outdated file paths in your Markdown.",
+  "keywords": [
+    "markdown",
+    "documentation",
+    "links",
+    "lint",
+    "cli"
+  ],
+  "license": "MIT",
+  "author": "sosoon1113",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sosoon1113/docrot.git"
+  },
+  "homepage": "https://github.com/sosoon1113/docrot#readme",
+  "bugs": "https://github.com/sosoon1113/docrot/issues",
+  "type": "module",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.0"
+  }
+}
