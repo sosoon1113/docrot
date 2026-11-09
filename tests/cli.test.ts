@@ -167,7 +167,10 @@ describe("configuration", () => {
   });
 
   it("writes a starter config with init", async () => {
-    expect(await run(["init"], { cwd: root })).toMatchObject({ code: 0, stdout: "Wrote .docrotrc.json\n" });
+    expect(await run(["init"], { cwd: root })).toMatchObject({
+      code: 0,
+      stdout: "Wrote .docrotrc.json\n",
+    });
     const config = JSON.parse(readFileSync(path.join(root, ".docrotrc.json"), "utf8"));
     expect(config.rules["broken-link"]).toBe("error");
 

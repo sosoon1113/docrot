@@ -9,7 +9,10 @@ import { globToRegExp } from "../src/util/glob.js";
 describe("parseConfig", () => {
   it("fills in defaults", () => {
     expect(parseConfig({})).toEqual(defaultConfig());
-    expect(parseConfig({ exclude: ["CHANGELOG.md"] }).include).toEqual(["**/*.md", "**/*.markdown"]);
+    expect(parseConfig({ exclude: ["CHANGELOG.md"] }).include).toEqual([
+      "**/*.md",
+      "**/*.markdown",
+    ]);
   });
 
   it("accepts every option", () => {
@@ -34,8 +37,14 @@ describe("parseConfig", () => {
     [{ include: "docs" }, "'include' must be an array of strings"],
     [{ ignoreTargets: [1] }, "'ignoreTargets' must be an array of strings"],
     [{ rules: [] }, "'rules' must be an object"],
-    [{ rules: { "broken-links": "off" } }, "unknown rule 'broken-links' (did you mean 'broken-link'?)"],
-    [{ rules: { "broken-link": "fatal" } }, 'rule \'broken-link\' must be "error", "warning" or "off"'],
+    [
+      { rules: { "broken-links": "off" } },
+      "unknown rule 'broken-links' (did you mean 'broken-link'?)",
+    ],
+    [
+      { rules: { "broken-link": "fatal" } },
+      'rule \'broken-link\' must be "error", "warning" or "off"',
+    ],
   ])("rejects %j", (value, message) => {
     expect(() => parseConfig(value, ".docrotrc.json")).toThrow(`.docrotrc.json: ${message}`);
   });

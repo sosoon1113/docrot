@@ -43,7 +43,10 @@ export async function main(argv: readonly string[], io: CliIo = processIo()): Pr
     .version(VERSION, "-v, --version")
     .argument("[paths...]", "Markdown files or directories to check (default: whole project)")
     .option("--root <dir>", "project root; links starting with / resolve against it", ".")
-    .option("-c, --config <file>", `config file (default: ${CONFIG_FILES.join(" or ")} in the root)`)
+    .option(
+      "-c, --config <file>",
+      `config file (default: ${CONFIG_FILES.join(" or ")} in the root)`,
+    )
     .addOption(
       new Option("-f, --format <format>", "output format").choices(FORMATS).default("pretty"),
     )
@@ -104,7 +107,9 @@ function runCheck(paths: string[], flags: CheckFlags, io: CliIo): number {
     settings: config.rules,
     ignoreTargets: config.ignoreTargets,
   });
-  const shown = flags.quiet ? result.findings.filter((f) => f.severity === "error") : result.findings;
+  const shown = flags.quiet
+    ? result.findings.filter((f) => f.severity === "error")
+    : result.findings;
   const summary = { filesChecked: result.filesChecked };
   io.stdout(formatReport(flags.format, shown, summary, { color: io.color }));
 

@@ -57,7 +57,9 @@ describe("stripInlineMarkdown", () => {
 
 describe("links", () => {
   it("finds inline links with position", () => {
-    const { links } = scanMarkdown(md("intro", "See [the guide](docs/guide.md) and [API](api.md)."));
+    const { links } = scanMarkdown(
+      md("intro", "See [the guide](docs/guide.md) and [API](api.md)."),
+    );
     expect(links).toEqual([
       { text: "the guide", target: "docs/guide.md", image: false, line: 2, column: 5 },
       { text: "API", target: "api.md", image: false, line: 2, column: 36 },
@@ -113,11 +115,20 @@ describe("links", () => {
 
 describe("reference-style links", () => {
   it("records definitions as links at the definition line", () => {
-    const doc = scanMarkdown(md("[Docs][docs]", "", '[docs]: ./docs/ "All docs"', " [Logo]: <img/logo.png>"));
+    const doc = scanMarkdown(
+      md("[Docs][docs]", "", '[docs]: ./docs/ "All docs"', " [Logo]: <img/logo.png>"),
+    );
     expect(doc.definitions).toEqual(new Set(["docs", "logo"]));
     expect(doc.links).toEqual([
       { text: "docs", target: "./docs/", image: false, line: 3, column: 1, definition: "docs" },
-      { text: "Logo", target: "img/logo.png", image: false, line: 4, column: 2, definition: "logo" },
+      {
+        text: "Logo",
+        target: "img/logo.png",
+        image: false,
+        line: 4,
+        column: 2,
+        definition: "logo",
+      },
     ]);
   });
 
@@ -130,7 +141,9 @@ describe("reference-style links", () => {
   });
 
   it("marks definitions used by images as images", () => {
-    const doc = scanMarkdown(md("[![CI][badge]][ci]", "", "[badge]: badge.svg", "[ci]: https://ci"));
+    const doc = scanMarkdown(
+      md("[![CI][badge]][ci]", "", "[badge]: badge.svg", "[ci]: https://ci"),
+    );
     expect(doc.links.map((l) => [l.definition, l.image])).toEqual([
       ["badge", true],
       ["ci", false],
@@ -174,13 +187,17 @@ describe("code spans", () => {
 
 describe("inline code and HTML comments", () => {
   it("ignores links written inside inline code", () => {
-    const doc = scanMarkdown("Write `[text](path.md)` or ``![alt](img.png)``, then [real](real.md).");
+    const doc = scanMarkdown(
+      "Write `[text](path.md)` or ``![alt](img.png)``, then [real](real.md).",
+    );
     expect(doc.links.map((l) => [l.target, l.column])).toEqual([["real.md", 54]]);
     expect(doc.codeSpans.map((s) => s.text)).toEqual(["[text](path.md)", "![alt](img.png)"]);
   });
 
   it("keeps link text that contains code", () => {
-    expect(scanMarkdown("[the `check` command](cli.md)").links[0]?.text).toBe("the `check` command");
+    expect(scanMarkdown("[the `check` command](cli.md)").links[0]?.text).toBe(
+      "the `check` command",
+    );
   });
 
   it("ignores links, anchors and code inside a one-line comment", () => {
@@ -199,7 +216,9 @@ describe("inline code and HTML comments", () => {
   });
 
   it("does not open a comment inside inline code", () => {
-    const doc = scanMarkdown(md("Use `<!--` to start a comment: [docs](docs.md)", "[next](next.md)"));
+    const doc = scanMarkdown(
+      md("Use `<!--` to start a comment: [docs](docs.md)", "[next](next.md)"),
+    );
     expect(doc.links.map((l) => l.target)).toEqual(["docs.md", "next.md"]);
   });
 

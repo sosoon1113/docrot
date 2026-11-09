@@ -37,7 +37,9 @@ describe("findMarkdownFiles", () => {
 
   it("always includes explicitly named files", () => {
     const file = path.join(fixtureRoot, "LICENSE.txt");
-    expect(findMarkdownFiles({ root: fixtureRoot, paths: [file], exclude: ["**"] })).toEqual([file]);
+    expect(findMarkdownFiles({ root: fixtureRoot, paths: [file], exclude: ["**"] })).toEqual([
+      file,
+    ]);
   });
 
   it("rejects paths that don't exist", () => {

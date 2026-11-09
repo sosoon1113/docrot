@@ -23,8 +23,8 @@ describe("broken-link and missing-image", () => {
   it("sorts findings by file and position", () => {
     const findings = check({ root: fixtureRoot, files: ["docs/guide.md", "README.md"] }).findings;
     const keys = findings.map((f) => [f.file, f.line, f.column] as const);
-    const sorted = [...keys].sort(
-      (a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : a[1] - b[1] || a[2] - b[2]),
+    const sorted = [...keys].sort((a, b) =>
+      a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : a[1] - b[1] || a[2] - b[2],
     );
     expect(keys).toEqual(sorted);
     expect(new Set(keys.map((key) => key[0]))).toEqual(new Set(["README.md", "docs/guide.md"]));
@@ -89,7 +89,11 @@ describe("check", () => {
     });
     const byRule = (rule: string) => findings.filter((f) => f.rule === rule);
     expect(byRule("missing-anchor")).toEqual([]);
-    expect(byRule("missing-image").map((f) => f.severity)).toEqual(["warning", "warning", "warning"]);
+    expect(byRule("missing-image").map((f) => f.severity)).toEqual([
+      "warning",
+      "warning",
+      "warning",
+    ]);
     expect(byRule("broken-link").map((f) => f.severity)).toEqual(["error", "error", "error"]);
   });
 

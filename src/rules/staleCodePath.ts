@@ -30,7 +30,10 @@ export const staleCodePath: Rule = {
       if (!looksLikeProjectPath(candidate) || isIgnored(candidate)) continue;
 
       // Docs refer to paths either from where they live or from the repo root.
-      const places = [path.resolve(path.dirname(file), candidate), path.resolve(project.root, candidate)];
+      const places = [
+        path.resolve(path.dirname(file), candidate),
+        path.resolve(project.root, candidate),
+      ];
       const matchesExactly = (place: string) =>
         project.exists(place) && project.caseMismatch(place) === null;
       if (places.some(matchesExactly)) continue;

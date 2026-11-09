@@ -40,8 +40,7 @@ export function formatPretty(
     const width = Math.max(...positions.map((p) => p.length));
     out.push(c.underline(file));
     group.forEach((finding, index) => {
-      const severity =
-        finding.severity === "error" ? c.red("error  ") : c.yellow("warning");
+      const severity = finding.severity === "error" ? c.red("error  ") : c.yellow("warning");
       const position = c.dim((positions[index] ?? "").padEnd(width));
       out.push(`  ${position}  ${severity}  ${finding.message}  ${c.dim(finding.rule)}`);
     });

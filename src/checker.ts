@@ -2,7 +2,7 @@ import path from "node:path";
 import type { RuleSettings } from "./config.js";
 import { DocrotError } from "./errors.js";
 import { Project } from "./project.js";
-import { type Rule, rules as builtInRules } from "./rules/index.js";
+import { rules as builtInRules, type Rule } from "./rules/index.js";
 import type { Finding } from "./types.js";
 import { matcher } from "./util/glob.js";
 

@@ -33,7 +33,9 @@ describe("looksLikeProjectPath", () => {
 
 describe("stale-code-path", () => {
   it("warns about paths in inline code that no longer exist", () => {
-    expect(checkFixture("docs/guide.md").filter((line) => line.includes("stale-code-path"))).toEqual([
+    expect(
+      checkFixture("docs/guide.md").filter((line) => line.includes("stale-code-path")),
+    ).toEqual([
       "docs/guide.md:15:19 stale-code-path 'lib/legacy.js' is mentioned in inline code but does not exist",
       "docs/guide.md:15:39 stale-code-path '../tools/build.sh' is mentioned in inline code but does not exist",
     ]);

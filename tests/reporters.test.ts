@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { supportsColor } from "../src/reporters/colors.js";
 import { formatReport } from "../src/reporters/index.js";
 import type { Finding } from "../src/types.js";
 
@@ -51,5 +52,21 @@ describe("github", () => {
 
 it("pretty output never contains ANSI codes unless color is on", () => {
   expect(formatReport("pretty", findings, { filesChecked: 4 })).not.toContain("\u001b[");
-  expect(formatReport("pretty", findings, { filesChecked: 4 }, { color: true })).toContain("\u001b[");
+  expect(formatReport("pretty", findings, { filesChecked: 4 }, { color: true })).toContain(
+    "\u001b[",
+  );
+});
+
+describe("supportsColor", () => {
+  const tty = { isTTY: true };
+  it.each([
+    [tty, {}, true],
+    [{ isTTY: false }, {}, false],
+    [tty, { NO_COLOR: "1" }, false],
+    [{ isTTY: false }, { FORCE_COLOR: "1" }, true],
+    [tty, { FORCE_COLOR: "0" }, false],
+    [tty, { TERM: "dumb" }, false],
+  ])("%o with %o -> %s", (stream, env, expected) => {
+    expect(supportsColor(stream, env)).toBe(expected);
+  });
 });
